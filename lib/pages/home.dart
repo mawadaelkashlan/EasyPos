@@ -1,4 +1,5 @@
 import 'package:final_project_level1/helpers/sql_helper.dart';
+import 'package:final_project_level1/pages/products.dart';
 import 'package:final_project_level1/widgets/grid_view_item.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -103,7 +104,10 @@ class _HomePageState extends State<HomePage> {
                 GridViewItem(
                   color: Colors.pink,
                   label: 'Products',
-                  iconData: Icons.inventory_2, onPressed: () {  },
+                  iconData: Icons.inventory_2, onPressed: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => ProductsPage()));
+                },
                 ),
                 GridViewItem(
                   color: Colors.lightBlue,
