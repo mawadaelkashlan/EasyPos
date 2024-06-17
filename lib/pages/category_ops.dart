@@ -1,7 +1,5 @@
-
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-
 import '../helpers/sql_helper.dart';
 import '../models/category.dart';
 import '../widgets/app_elevated_button.dart';
