@@ -171,7 +171,6 @@ class _ProductsPageState extends State<ProductsPage> {
     }
   }
 }
-
 class ProductsSource extends DataTableSource {
   List<Product>? productsEx;
 
