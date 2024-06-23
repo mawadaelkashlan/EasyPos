@@ -24,8 +24,15 @@ class SqlHelper {
     }
   }
 
+  Future<void> registerForeignKesys() async {
+    await db!.rawQuery(" PRAGMA foreign_keys = ON");
+    var result = await db!.rawQuery(" PRAGMA foreign_keys ");
+    print('foreign keys result :$result ');
+  }
+
   Future<bool> createTables() async {
     try {
+      await registerForeignKesys();
       var batch = db!.batch();
       batch.rawQuery("""
       PRAGMA foreign_keys = ON
@@ -63,6 +70,26 @@ class SqlHelper {
           email text,
           phone text,
           address text
+          ) 
+          """);
+      batch.execute("""
+        Create table if not exists orders(
+          id integer primary key,
+          label text,
+          totalPrice real,
+          discount real,
+          clientId integer not null,
+          foreign key(clientId) references clients(id)
+          on delete restrict
+          ) 
+          """);
+      batch.execute("""
+        Create table if not exists orderProductItems(
+         orderId integer,
+         productCount integer,
+         productId integer,
+          foreign key(productId) references products(id)
+          on delete restrict
           ) 
           """);
 

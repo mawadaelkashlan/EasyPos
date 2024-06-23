@@ -3,7 +3,7 @@ import 'package:final_project_level1/pages/home.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
-void main() async{
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var sqlHelper = SqlHelper();
   await sqlHelper.init();
@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Easy pos',
       theme: ThemeData(
-        appBarTheme: AppBarTheme(
+        appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xff0157db),
           foregroundColor: Colors.white,
         ),
@@ -30,11 +30,11 @@ class MyApp extends StatelessWidget {
           errorColor: Colors.red,
           cardColor: Colors.blue.shade100,
           backgroundColor: Colors.white,
-          primarySwatch: getMaterialColor(Color(0xff0157db)),
+          primarySwatch: getMaterialColor(const Color(0xff0157db)),
         ),
         useMaterial3: true,
       ),
-      home: HomePage(),
+      home: const HomePage(),
     );
   }
   MaterialColor getMaterialColor(Color color) {

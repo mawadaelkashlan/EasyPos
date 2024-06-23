@@ -1,5 +1,7 @@
 import 'package:final_project_level1/helpers/sql_helper.dart';
+import 'package:final_project_level1/pages/all_sales.dart';
 import 'package:final_project_level1/pages/products.dart';
+import 'package:final_project_level1/pages/sale_ops_page.dart';
 import 'package:final_project_level1/widgets/grid_view_item.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -99,7 +101,10 @@ class _HomePageState extends State<HomePage> {
                 GridViewItem(
                   color: Colors.orange,
                   label: 'All Sales',
-                  iconData: Icons.calculate, onPressed: () {  },
+                  iconData: Icons.calculate, onPressed: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => AllSales()));
+                },
                 ),
                 GridViewItem(
                   color: Colors.pink,
@@ -119,7 +124,9 @@ class _HomePageState extends State<HomePage> {
                 GridViewItem(
                   color: Colors.green,
                   label: 'New Sale',
-                  iconData: Icons.point_of_sale, onPressed: () {  },
+                  iconData: Icons.point_of_sale, onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context)=> SaleOpsPage()));
+                },
                 ),
                 GridViewItem(
                   color: Colors.yellow,

@@ -2,10 +2,11 @@ import 'package:data_table_2/data_table_2.dart';
 import 'package:final_project_level1/helpers/sql_helper.dart';
 import 'package:final_project_level1/models/client.dart';
 import 'package:final_project_level1/widgets/app_elevated_button.dart';
+import 'package:final_project_level1/widgets/app_table.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-
 import '../widgets/app_text_formfield.dart';
+import 'clients_ops.dart';
 
 class Clients extends StatefulWidget {
   const Clients({super.key});
@@ -41,51 +42,61 @@ class _ClientsState extends State<Clients> {
     }
     setState(() {});
   }
+
   final formKey = GlobalKey<FormState>();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController addressController =
-  TextEditingController();
+  final TextEditingController addressController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
-        title: Text("Clients"),
+        title: const Text('Clients'),
         actions: [
           IconButton(
-            onPressed: () {
-              showAddClientSheet();
-            },
-            icon: Icon(Icons.add),
-          )
+              onPressed: () async {
+                var result = await Navigator.push(context,
+                    MaterialPageRoute(builder: (ctx) => ClientsOpsPage()));
+                if (result ?? false) {
+                  getClients();
+                }
+              },
+              icon: const Icon(Icons.add))
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            
-            Expanded(
-              child: PaginatedDataTable2(
-                empty: const Center(
-                  child: Text('No Data Found'),
+            TextField(
+              onChanged: (value) async {
+                var sqlHelper = GetIt.I.get<SqlHelper>();
+                var result = await sqlHelper.db!.rawQuery("""
+        SELECT * FROM clients
+        WHERE name LIKE '%$value%' OR email LIKE '%$value%' ; 
+          """);
+
+                print('values:${result}');
+              },
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(5)),
                 ),
-                headingRowHeight: 40,
-                renderEmptyRowsInTheEnd: false,
-                isHorizontalScrollBarVisible: true,
-                minWidth: 700,
-                wrapInCard: false,
-                rowsPerPage: 15,
-                headingTextStyle:
-                const TextStyle(color: Colors.white, fontSize: 18),
-                headingRowColor:
-                MaterialStatePropertyAll(Theme.of(context).primaryColor),
-                border: TableBorder.all(color: Colors.grey),
-                columnSpacing: 20,
-                horizontalMargin: 20,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(5)),
+                ),
+                labelText: 'Search',
+              ),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Expanded(
+              child: AppTable(
+                minWidth: 800,
                 columns: const [
                   DataColumn(label: Text('Id')),
                   DataColumn(label: Text('Name')),
@@ -94,82 +105,71 @@ class _ClientsState extends State<Clients> {
                   DataColumn(label: Text('Address')),
                   DataColumn(label: Center(child: Text('Actions'))),
                 ],
-                source: MyDataTableSource(clients, getClients),
+                source: ClientsTableSource(
+                  categoriesEx: clients,
+                  onUpdate: (clientData) async {
+                    var result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (ctx) => ClientsOpsPage(
+                                  clientData: clientData,
+                                )));
+                    if (result ?? false) {
+                      getClients();
+                    }
+                  },
+                  onDelete: (clientData) {
+                    onDeleteRow(clientData.id!);
+                  },
+                ),
               ),
-            ),
+            )
           ],
         ),
       ),
     );
   }
 
-  void showAddClientSheet() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-
-        return Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppTextFormField(
-                  controller: nameController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a name';
-                    }
-                    return null;
+  Future<void> onDeleteRow(int id) async {
+    try {
+      var dialogResult = await showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Delete Client'),
+              content:
+                  const Text('Are you sure you want to delete this client?'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context, false);
                   },
-                  label: 'Name',
+                  child: const Text('Cancel'),
                 ),
-                const SizedBox(height: 8,),
-                AppTextFormField(
-                  controller: phoneController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a phone number';
-                    }
-                    return null;
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context, true);
                   },
-                  label: 'Phone',
+                  child: const Text('Delete'),
                 ),
-                const SizedBox(height: 8,),
-                AppTextFormField(
-                  controller: emailController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter an email';
-                    }
-                    return null;
-                  },
-                  label: 'Email',
-                ),
-                const SizedBox(height: 8,),
-                AppTextFormField(
-                  controller: addressController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter an address';
-                    }
-                    return null;
-                  },
-                  label: 'Address',
-                ),
-                const SizedBox(height: 16),
-                AppElevatedButton(
-                    onPressed: () async {
-                      onSubmit();
-                    },
-                    label: 'Add Client'),
               ],
-            ),
-          ),
+            );
+          });
+
+      if (dialogResult ?? false) {
+        var sqlHelper = GetIt.I.get<SqlHelper>();
+        var result = await sqlHelper.db!.delete(
+          'clients',
+          where: 'id =?',
+          whereArgs: [id],
         );
-      },
-    );
+        if (result > 0) {
+          getClients();
+        }
+      }
+    } catch (e) {
+      print('Error In delete data $e');
+    }
   }
 
   Future<void> onSubmit() async {
@@ -196,28 +196,36 @@ class _ClientsState extends State<Clients> {
   }
 }
 
-class MyDataTableSource extends DataTableSource {
-  List<ClientData>? clientsEx;
+class ClientsTableSource extends DataTableSource {
+  List<ClientData>? categoriesEx;
 
-  void Function() getClients;
+  void Function(ClientData) onUpdate;
+  void Function(ClientData) onDelete;
 
-  MyDataTableSource(this.clientsEx, this.getClients);
+  ClientsTableSource(
+      {required this.categoriesEx,
+      required this.onUpdate,
+      required this.onDelete});
 
   @override
   DataRow? getRow(int index) {
     return DataRow2(cells: [
-      DataCell(Text('${clientsEx?[index].id}')),
-      DataCell(Text('${clientsEx?[index].name}')),
-      DataCell(Text('${clientsEx?[index].phone}')),
-      DataCell(Text('${clientsEx?[index].email}')),
-      DataCell(Text('${clientsEx?[index].address}')),
+      DataCell(Text('${categoriesEx?[index].id}')),
+      DataCell(Text('${categoriesEx?[index].name}')),
+      DataCell(Text('${categoriesEx?[index].phone}')),
+      DataCell(Text('${categoriesEx?[index].email}')),
+      DataCell(Text('${categoriesEx?[index].address}')),
       DataCell(Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(onPressed: () async {}, icon: const Icon(Icons.edit)),
           IconButton(
-              onPressed: () async {
-                await onDeleteRow(clientsEx?[index].id ?? 0);
+              onPressed: () {
+                onUpdate(categoriesEx![index]);
+              },
+              icon: const Icon(Icons.edit)),
+          IconButton(
+              onPressed: () {
+                onDelete(categoriesEx![index]);
               },
               icon: const Icon(
                 Icons.delete,
@@ -228,28 +236,13 @@ class MyDataTableSource extends DataTableSource {
     ]);
   }
 
-  Future<void> onDeleteRow(int id) async {
-    try {
-      var sqlHelper = GetIt.I.get<SqlHelper>();
-      var result = await sqlHelper.db!.delete(
-        'Clients',
-        where: 'id =?',
-        whereArgs: [id],
-      );
-      if (result > 0) {
-        getClients();
-      }
-    } catch (e) {
-      print('Error In delete data $e');
-    }
-  }
-
   @override
   bool get isRowCountApproximate => false;
 
   @override
-  int get rowCount => clientsEx?.length ?? 0;
+  int get rowCount => categoriesEx?.length ?? 0;
 
   @override
   int get selectedRowCount => 0;
 }
+
