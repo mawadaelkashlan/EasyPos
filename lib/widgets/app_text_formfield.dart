@@ -9,7 +9,7 @@ class AppTextFormField extends StatelessWidget {
   final TextInputType? keyboardType;
   const AppTextFormField(
       {required this.controller,
-        required this.validator,
+        this.validator,
         required this.label,
         this.formatters,
         this.keyboardType,

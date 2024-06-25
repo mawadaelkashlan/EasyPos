@@ -93,7 +93,9 @@ class _AllSalesState extends State<AllSales> {
                     ],
                     source: OrderDataSource(
                       ordersEx: orders,
-                      onDelete: (order) {},
+                      onDelete: (order) {
+                        onDeleteRow(order.id!);
+                      },
                       onShow: (order) {},
                     ))),
           ],
@@ -101,6 +103,48 @@ class _AllSalesState extends State<AllSales> {
       ),
     );
   }
+  Future<void> onDeleteRow(int id) async {
+    try {
+      var dialogResult = await showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Delete Sale'),
+              content:
+              const Text('Are you sure you want to delete this Sale?'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context, false);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context, true);
+                  },
+                  child: const Text('Delete'),
+                ),
+              ],
+            );
+          });
+
+      if (dialogResult ?? false) {
+        var sqlHelper = GetIt.I.get<SqlHelper>();
+        var result = await sqlHelper.db!.delete(
+          'orders',
+          where: 'id =?',
+          whereArgs: [id],
+        );
+        if (result > 0) {
+          getOrders();
+        }
+      }
+    } catch (e) {
+      print('Error In delete data $e');
+    }
+  }
+
 }
 
 class OrderDataSource extends DataTableSource {
