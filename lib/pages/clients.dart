@@ -1,4 +1,3 @@
-import 'package:data_table_2/data_table_2.dart';
 import 'package:final_project_level1/helpers/sql_helper.dart';
 import 'package:final_project_level1/models/client.dart';
 import 'package:final_project_level1/widgets/app_table.dart';
@@ -16,6 +15,11 @@ class Clients extends StatefulWidget {
 class _ClientsState extends State<Clients> {
   List<ClientData>? clients;
   List<ClientData>? allClients;
+  bool _sortNameAsc = true;
+
+  int? _sortColumnIndex;
+
+  bool _sortAsc = true;
 
   @override
   void initState() {
@@ -134,8 +138,22 @@ class _ClientsState extends State<Clients> {
             Expanded(
               child: AppTable(
                 minWidth: 800,
-                columns: const [
-                  DataColumn(label: Text('Id')),
+                columns:  [
+                  DataColumn(label: Text('Id'),
+                      onSort: (columnIndex, sortAscending){
+                        setState(() {
+                          if (columnIndex == _sortColumnIndex) {
+                            _sortAsc = _sortNameAsc = sortAscending;
+                          } else {
+                            _sortColumnIndex = columnIndex;
+                            _sortAsc = _sortNameAsc;
+                          }
+                          clients!.sort((a, b) => a.name!.compareTo(b.name!));
+                          if (!_sortAsc) {
+                            clients = clients!.reversed.toList();
+                          }
+                        });
+                      }),
                   DataColumn(label: Text('Name')),
                   DataColumn(label: Text('Phone')),
                   DataColumn(label: Text('Email')),
@@ -235,50 +253,85 @@ class _ClientsState extends State<Clients> {
 
 class ClientsTableSource extends DataTableSource {
   List<ClientData>? categoriesEx;
-
   void Function(ClientData) onUpdate;
   void Function(ClientData) onDelete;
 
-  ClientsTableSource(
-      {required this.categoriesEx,
-        required this.onUpdate,
-        required this.onDelete});
+  ClientsTableSource({
+    required this.categoriesEx,
+    required this.onUpdate,
+    required this.onDelete,
+  });
+
+  int _sortColumnIndex = 0;
+  bool _sortAscending = true;
+
+  void _sort<T>(
+      Comparable<T> Function(ClientData client) getField,
+      int columnIndex,
+      bool ascending,
+      ) {
+    categoriesEx!.sort((a, b) {
+      final aValue = getField(a);
+      final bValue = getField(b);
+      return ascending ? Comparable.compare(aValue, bValue) : Comparable.compare(bValue, aValue);
+    });
+    _sortColumnIndex = columnIndex;
+    _sortAscending = ascending;
+    notifyListeners();
+  }
 
   @override
   DataRow? getRow(int index) {
-    return DataRow2(cells: [
-      DataCell(Text('${categoriesEx?[index].id}')),
-      DataCell(Text('${categoriesEx?[index].name}')),
-      DataCell(Text('${categoriesEx?[index].phone}')),
-      DataCell(Text('${categoriesEx?[index].email}')),
-      DataCell(Text('${categoriesEx?[index].address}')),
-      DataCell(Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
+    if (index >= categoriesEx!.length) return null;
+    final client = categoriesEx![index];
+    return DataRow(
+      cells: [
+        DataCell(Text('${client.id}')),
+        DataCell(Text('${client.name}')),
+        DataCell(Text('${client.phone}')),
+        DataCell(Text('${client.email}')),
+        DataCell(Text('${client.address}')),
+        DataCell(Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
               onPressed: () {
-                onUpdate(categoriesEx![index]);
+                onUpdate(client);
               },
-              icon: const Icon(Icons.edit)),
-          IconButton(
+              icon: const Icon(Icons.edit),
+            ),
+            IconButton(
               onPressed: () {
-                onDelete(categoriesEx![index]);
+                onDelete(client);
               },
               icon: const Icon(
                 Icons.delete,
                 color: Colors.red,
-              )),
-        ],
-      )),
-    ]);
+              ),
+            ),
+          ],
+        )),
+      ],
+    );
   }
 
   @override
   bool get isRowCountApproximate => false;
 
   @override
-  int get rowCount => categoriesEx?.length ?? 0;
+  int get rowCount => categoriesEx!.length;
 
   @override
   int get selectedRowCount => 0;
+
+  @override
+  bool get sortAscending => _sortAscending;
+
+  @override
+  int get sortColumnIndex => _sortColumnIndex;
+
+  @override
+  void sort<T>(Comparable<T> Function(ClientData client) getField, bool ascending) {
+    _sort(getField, 0, ascending);
+  }
 }

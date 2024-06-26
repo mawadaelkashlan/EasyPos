@@ -21,10 +21,18 @@ class _AllSalesState extends State<AllSales> {
   TextEditingController maxPriceController = TextEditingController();
   TextEditingController clientNameController = TextEditingController();
 
+  bool _sortNameAsc = true;
+
+  int? _sortColumnIndex;
+
+  bool _sortAsc = true;
+
+
   @override
   void initState() {
-    getOrders();
     super.initState();
+    getOrders();
+    setState(() {});
   }
 
   void getOrders() async {
@@ -132,8 +140,23 @@ class _AllSalesState extends State<AllSales> {
             Expanded(
               child: AppTable(
                 minWidth: 1100,
-                columns: const [
-                  DataColumn(label: Text('Id')),
+                columns:  [
+                  DataColumn(label: Text('Id'),
+                      onSort: (columnIndex, sortAscending){
+                        setState(() {
+                          if (columnIndex == _sortColumnIndex) {
+                            _sortAsc = _sortNameAsc = sortAscending;
+                          } else {
+                            _sortColumnIndex = columnIndex;
+                            _sortAsc = _sortNameAsc;
+                          }
+                          orders!.sort((a, b) => a.totalPrice!.compareTo(b.totalPrice!));
+                          if (!_sortAsc) {
+                            orders = orders!.reversed.toList();
+                          }
+                        });
+                      }
+                  ),
                   DataColumn(label: Text('Label')),
                   DataColumn(label: Text('Total Price')),
                   DataColumn(label: Text('Discount')),
@@ -156,6 +179,7 @@ class _AllSalesState extends State<AllSales> {
           ],
         ),
       ),
+
     );
   }
 
@@ -321,6 +345,7 @@ class _AllSalesState extends State<AllSales> {
       return [];
     }
   }
+
 }
 
 class OrderDataSource extends DataTableSource {

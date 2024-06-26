@@ -9,7 +9,7 @@ class AppTable extends StatelessWidget {
       {required this.columns,
         required this.source,
         this.minWidth = 600,
-        super.key});
+        super.key,});
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +20,8 @@ class AppTable extends StatelessWidget {
         renderEmptyRowsInTheEnd: false,
         isHorizontalScrollBarVisible: true,
         minWidth: minWidth,
+        sortColumnIndex: 0,
+        sortAscending: true,
         wrapInCard: false,
         rowsPerPage: 15,
         headingTextStyle: const TextStyle(color: Colors.white, fontSize: 18),

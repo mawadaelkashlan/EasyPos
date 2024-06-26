@@ -17,7 +17,11 @@ class CategoriesPage extends StatefulWidget {
 class _CategoriesPageState extends State<CategoriesPage> {
   List<CategoryData>? categories;
   List<CategoryData>? allCategories;
+  bool _sortNameAsc = true;
 
+  int? _sortColumnIndex;
+
+  bool _sortAsc = true;
   @override
   void initState() {
     getCategories();
@@ -131,9 +135,22 @@ class _CategoriesPageState extends State<CategoriesPage> {
             ),
             Expanded(
               child: AppTable(
-                columns: const [
-                  DataColumn(label: Text('Id')),
-                  DataColumn(label: Text('Name')),
+                columns:  [
+                  DataColumn(label: Text('Id'), onSort: (columnIndex, sortAscending){
+                    setState(() {
+                      if (columnIndex == _sortColumnIndex) {
+                        _sortAsc = _sortNameAsc = sortAscending;
+                      } else {
+                        _sortColumnIndex = columnIndex;
+                        _sortAsc = _sortNameAsc;
+                      }
+                      categories!.sort((a, b) => a.name!.compareTo(b.name!));
+                      if (!_sortAsc) {
+                        categories = categories!.reversed.toList();
+                      }
+                    });
+                  }),
+                  DataColumn(label: Text('Name'),),
                   DataColumn(label: Text('Description')),
                   DataColumn(label: Center(child: Text('Actions'))),
                 ],

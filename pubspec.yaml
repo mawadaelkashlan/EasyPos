@@ -34,6 +34,7 @@ dependencies:
   sqflite_common_ffi_web: ^0.4.3+1
   get_it: ^7.7.0
   data_table_2: ^2.5.12
+  intl: ^0.19.0
 
 
   # The following adds the Cupertino Icons font to your application.

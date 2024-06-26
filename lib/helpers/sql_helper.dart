@@ -79,6 +79,7 @@ class SqlHelper {
           totalPrice real,
           discount real,
           clientId integer not null,
+          orderDate TEXT,
           foreign key(clientId) references clients(id)
           on delete restrict
           ) 
@@ -93,12 +94,40 @@ class SqlHelper {
           ) 
           """);
 
+      batch.execute("""
+        CREATE TABLE IF NOT EXISTS exchangeRates(
+          id INTEGER PRIMARY KEY,
+          currency TEXT NOT NULL,
+          rate REAL NOT NULL
+        ) 
+      """);
+
+      batch.execute("""
+        INSERT INTO exchangeRates(currency, rate)
+        VALUES('USD_TO_EGP', 60.0)
+      """);
+
       var result = await batch.commit();
       print('resuts $result');
       return true;
     } catch (e) {
       print('Error in creating table: $e');
       return false;
+    }
+  }
+  Future<double?> getExchangeRate(String currency) async {
+    try {
+      var result = await db!.rawQuery("""
+        SELECT rate FROM exchangeRates WHERE currency = '$currency'
+      """);
+      if (result.isNotEmpty) {
+        return result.first['rate'] as double?;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching exchange rate: $e');
+      return null;
     }
   }
 }
