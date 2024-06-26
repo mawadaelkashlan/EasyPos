@@ -1,6 +1,7 @@
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+
 import '../helpers/sql_helper.dart';
 import '../models/category.dart';
 import '../widgets/app_table.dart';
@@ -15,6 +16,8 @@ class CategoriesPage extends StatefulWidget {
 
 class _CategoriesPageState extends State<CategoriesPage> {
   List<CategoryData>? categories;
+  List<CategoryData>? allCategories;
+
   @override
   void initState() {
     getCategories();
@@ -28,15 +31,41 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
       if (data.isNotEmpty) {
         categories = [];
+        allCategories = [];
         for (var item in data) {
-          categories!.add(CategoryData.fromJson(item));
+          var category = CategoryData.fromJson(item);
+          categories!.add(category);
+          allCategories!.add(category);
         }
       } else {
         categories = [];
+        allCategories = [];
       }
     } catch (e) {
       print('Error In get data $e');
       categories = [];
+      allCategories = [];
+    }
+    setState(() {});
+  }
+
+  String selectedFilter = 'name';
+
+  void searchCategories(String query) {
+    if (query.isEmpty) {
+      categories = allCategories;
+    } else {
+      categories = allCategories!.where((category) {
+        final categoryValue = (selectedFilter == 'name'
+            ? category.name
+            : selectedFilter == 'description'
+            ? category.description
+            : '')!
+            .toLowerCase();
+        final searchQuery = query.toLowerCase();
+
+        return categoryValue.contains(searchQuery);
+      }).toList();
     }
     setState(() {});
   }
@@ -62,55 +91,71 @@ class _CategoriesPageState extends State<CategoriesPage> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            TextField(
-              onChanged: (value) async {
-                var sqlHelper = GetIt.I.get<SqlHelper>();
-                var result = await sqlHelper.db!.rawQuery("""
-        SELECT * FROM Categories
-        WHERE name LIKE '%$value%' OR description LIKE '%$value%';
-          """);
-
-                print('values:${result}');
-              },
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(5)),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    onChanged: searchCategories,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(5)),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(5)),
+                      ),
+                      labelText: 'Search',
+                    ),
+                  ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(5)),
+                const SizedBox(width: 10),
+                DropdownButton<String>(
+                  value: selectedFilter,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedFilter = newValue!;
+                    });
+                  },
+                  items: <String>['name', 'description']
+                      .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
                 ),
-                labelText: 'Search',
-              ),
+              ],
             ),
             const SizedBox(
               height: 10,
             ),
             Expanded(
-                child: AppTable(
-                    columns: const [
-                      DataColumn(label: Text('Id')),
-                      DataColumn(label: Text('Name')),
-                      DataColumn(label: Text('Description')),
-                      DataColumn(label: Center(child: Text('Actions'))),
-                    ],
-                    source: CategoriesTableSource(
-                      categoriesEx: categories,
-                      onUpdate: (categoryData) async {
-                        var result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (ctx) => CategoriesOpsPage(
-                                  categoryData: categoryData,
-                                )));
-                        if (result ?? false) {
-                          getCategories();
-                        }
-                      },
-                      onDelete: (categoryData) {
-                        onDeleteRow(categoryData.id!);
-                      },
-                    ))),
+              child: AppTable(
+                columns: const [
+                  DataColumn(label: Text('Id')),
+                  DataColumn(label: Text('Name')),
+                  DataColumn(label: Text('Description')),
+                  DataColumn(label: Center(child: Text('Actions'))),
+                ],
+                source: CategoriesTableSource(
+                  categoriesEx: categories,
+                  onUpdate: (categoryData) async {
+                    var result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (ctx) => CategoriesOpsPage(
+                              categoryData: categoryData,
+                            )));
+                    if (result ?? false) {
+                      getCategories();
+                    }
+                  },
+                  onDelete: (categoryData) {
+                    onDeleteRow(categoryData.id!);
+                  },
+                ),
+              ),
+            )
           ],
         ),
       ),
@@ -165,10 +210,11 @@ class CategoriesTableSource extends DataTableSource {
 
   void Function(CategoryData) onUpdate;
   void Function(CategoryData) onDelete;
-  CategoriesTableSource(
-      {required this.categoriesEx,
-        required this.onUpdate,
-        required this.onDelete});
+  CategoriesTableSource({
+    required this.categoriesEx,
+    required this.onUpdate,
+    required this.onDelete,
+  });
 
   @override
   DataRow? getRow(int index) {
@@ -180,18 +226,20 @@ class CategoriesTableSource extends DataTableSource {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-              onPressed: () {
-                onUpdate(categoriesEx![index]);
-              },
-              icon: const Icon(Icons.edit)),
+            onPressed: () {
+              onUpdate(categoriesEx![index]);
+            },
+            icon: const Icon(Icons.edit),
+          ),
           IconButton(
-              onPressed: () {
-                onDelete(categoriesEx![index]);
-              },
-              icon: const Icon(
-                Icons.delete,
-                color: Colors.red,
-              )),
+            onPressed: () {
+              onDelete(categoriesEx![index]);
+            },
+            icon: const Icon(
+              Icons.delete,
+              color: Colors.red,
+            ),
+          ),
         ],
       )),
     ]);

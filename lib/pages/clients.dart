@@ -1,11 +1,9 @@
 import 'package:data_table_2/data_table_2.dart';
 import 'package:final_project_level1/helpers/sql_helper.dart';
 import 'package:final_project_level1/models/client.dart';
-import 'package:final_project_level1/widgets/app_elevated_button.dart';
 import 'package:final_project_level1/widgets/app_table.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import '../widgets/app_text_formfield.dart';
 import 'clients_ops.dart';
 
 class Clients extends StatefulWidget {
@@ -17,6 +15,7 @@ class Clients extends StatefulWidget {
 
 class _ClientsState extends State<Clients> {
   List<ClientData>? clients;
+  List<ClientData>? allClients;
 
   @override
   void initState() {
@@ -30,15 +29,39 @@ class _ClientsState extends State<Clients> {
       var data = await sqlHelper.db!.query('clients');
       if (data.isNotEmpty) {
         clients = [];
+        allClients = [];
         for (var item in data) {
-          clients!.add(ClientData.fromJson(item));
+          var client = ClientData.fromJson(item);
+          clients!.add(client);
+          allClients!.add(client);
         }
       } else {
         clients = [];
+        allClients = [];
       }
     } catch (e) {
       print('Error In get clients data $e');
       clients = [];
+      allClients = [];
+    }
+    setState(() {});
+  }
+
+  String selectedFilter = 'name';
+
+  void searchClients(String query) {
+    if (query.isEmpty) {
+      clients = allClients;
+    } else {
+      clients = allClients!.where((client) {
+        final clientValue = (selectedFilter == 'name'
+            ? client.name
+            : selectedFilter == 'email' ? client.email
+            : client.phone)!.toLowerCase();
+        final searchQuery = query.toLowerCase();
+
+        return clientValue.contains(searchQuery);
+      }).toList();
     }
     setState(() {});
   }
@@ -70,26 +93,40 @@ class _ClientsState extends State<Clients> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            TextField(
-              onChanged: (value) async {
-                var sqlHelper = GetIt.I.get<SqlHelper>();
-                var result = await sqlHelper.db!.rawQuery("""
-        SELECT * FROM clients
-        WHERE name LIKE '%$value%' OR email LIKE '%$value%' ; 
-          """);
-
-                print('values:${result}');
-              },
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(5)),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    onChanged: searchClients,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(5)),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(5)),
+                      ),
+                      labelText: 'Search',
+                    ),
+                  ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(5)),
+                const SizedBox(width: 10),
+                DropdownButton<String>(
+                  value: selectedFilter,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedFilter = newValue!;
+                    });
+                  },
+                  items: <String>['name', 'email' , 'phone']
+                      .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
                 ),
-                labelText: 'Search',
-              ),
+              ],
             ),
             const SizedBox(
               height: 10,
@@ -112,8 +149,8 @@ class _ClientsState extends State<Clients> {
                         context,
                         MaterialPageRoute(
                             builder: (ctx) => ClientsOpsPage(
-                                  clientData: clientData,
-                                )));
+                              clientData: clientData,
+                            )));
                     if (result ?? false) {
                       getClients();
                     }
@@ -138,7 +175,7 @@ class _ClientsState extends State<Clients> {
             return AlertDialog(
               title: const Text('Delete Client'),
               content:
-                  const Text('Are you sure you want to delete this client?'),
+              const Text('Are you sure you want to delete this client?'),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -204,8 +241,8 @@ class ClientsTableSource extends DataTableSource {
 
   ClientsTableSource(
       {required this.categoriesEx,
-      required this.onUpdate,
-      required this.onDelete});
+        required this.onUpdate,
+        required this.onDelete});
 
   @override
   DataRow? getRow(int index) {
@@ -245,4 +282,3 @@ class ClientsTableSource extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
-

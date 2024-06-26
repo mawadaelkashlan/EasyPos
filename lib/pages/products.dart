@@ -16,6 +16,8 @@ class ProductsPage extends StatefulWidget {
 
 class _ProductsPageState extends State<ProductsPage> {
   List<Product>? products;
+  List<Product>? allProducts;
+
   @override
   void initState() {
     getProducts();
@@ -34,15 +36,41 @@ class _ProductsPageState extends State<ProductsPage> {
 
       if (data.isNotEmpty) {
         products = [];
+        allProducts = [];
         for (var item in data) {
-          products!.add(Product.fromJson(item));
+          var product = Product.fromJson(item);
+          products!.add(product);
+          allProducts!.add(product);
         }
       } else {
         products = [];
+        allProducts = [];
       }
     } catch (e) {
       print('Error In get data $e');
       products = [];
+      allProducts = [];
+    }
+    setState(() {});
+  }
+
+  String selectedFilter = 'name';
+
+  void searchProducts(String query) {
+    if (query.isEmpty) {
+      products = allProducts;
+    } else {
+      products = allProducts!.where((product) {
+        final productValue = (selectedFilter == 'name'
+            ? product.name
+            : selectedFilter == 'description'
+            ? product.description
+            : product.price.toString())!
+            .toLowerCase();
+        final searchQuery = query.toLowerCase();
+
+        return productValue.contains(searchQuery);
+      }).toList();
     }
     setState(() {});
   }
@@ -68,61 +96,79 @@ class _ProductsPageState extends State<ProductsPage> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            TextField(
-              onChanged: (value) async {
-                var sqlHelper = GetIt.I.get<SqlHelper>();
-                await sqlHelper.db!.rawQuery("""
-        SELECT * FROM products
-        WHERE name LIKE '%$value%' OR description LIKE '%$value% OR price LIKE '%$value%';
-          """);
-              },
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(5)),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    onChanged: searchProducts,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(5)),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(5)),
+                      ),
+                      labelText: 'Search',
+                    ),
+                  ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(5)),
+                const SizedBox(width: 10),
+                DropdownButton<String>(
+                  value: selectedFilter,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedFilter = newValue!;
+                    });
+                  },
+                  items: <String>['name', 'description', 'price']
+                      .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
                 ),
-                labelText: 'Search',
-              ),
+              ],
             ),
             const SizedBox(
               height: 10,
             ),
             Expanded(
-                child: AppTable(
-                    minWidth: 1300,
-                    columns: const [
-                      DataColumn(label: Text('Id')),
-                      DataColumn(label: Text('Name')),
-                      DataColumn(label: Text('Description')),
-                      DataColumn(label: Text('Price')),
-                      DataColumn(label: Text('Stock')),
-                      DataColumn(label: Text('isAvaliable')),
-                      DataColumn(label: Center(child: Text('image'))),
-                      DataColumn(label: Text('categoryId')),
-                      DataColumn(label: Text('categoryName')),
-                      DataColumn(label: Text('categoryDesc')),
-                      DataColumn(label: Center(child: Text('Actions'))),
-                    ],
-                    source: ProductsSource(
-                      productsEx: products,
-                      onUpdate: (productData) async {
-                        var result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (ctx) => ProductOpsPage(
-                                  product: productData,
-                                )));
-                        if (result ?? false) {
-                          getProducts();
-                        }
-                      },
-                      onDelete: (productData) {
-                        onDeleteRow(productData.id!);
-                      },
-                    ))),
+              child: AppTable(
+                minWidth: 1300,
+                columns: const [
+                  DataColumn(label: Text('Id')),
+                  DataColumn(label: Text('Name')),
+                  DataColumn(label: Text('Description')),
+                  DataColumn(label: Text('Price')),
+                  DataColumn(label: Text('Stock')),
+                  DataColumn(label: Text('isAvaliable')),
+                  DataColumn(label: Center(child: Text('Image'))),
+                  DataColumn(label: Text('Category ID')),
+                  DataColumn(label: Text('Category Name')),
+                  DataColumn(label: Text('Category Description')),
+                  DataColumn(label: Center(child: Text('Actions'))),
+                ],
+                source: ProductsSource(
+                  productsEx: products,
+                  onUpdate: (productData) async {
+                    var result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (ctx) => ProductOpsPage(
+                              product: productData,
+                            )));
+                    if (result ?? false) {
+                      getProducts();
+                    }
+                  },
+                  onDelete: (productData) {
+                    onDeleteRow(productData.id!);
+                  },
+                ),
+              ),
+            )
           ],
         ),
       ),
@@ -171,15 +217,17 @@ class _ProductsPageState extends State<ProductsPage> {
     }
   }
 }
+
 class ProductsSource extends DataTableSource {
   List<Product>? productsEx;
 
   void Function(Product) onUpdate;
   void Function(Product) onDelete;
-  ProductsSource(
-      {required this.productsEx,
-        required this.onUpdate,
-        required this.onDelete});
+  ProductsSource({
+    required this.productsEx,
+    required this.onUpdate,
+    required this.onDelete,
+  });
 
   @override
   DataRow? getRow(int index) {
@@ -203,18 +251,20 @@ class ProductsSource extends DataTableSource {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-              onPressed: () {
-                onUpdate(productsEx![index]);
-              },
-              icon: const Icon(Icons.edit)),
+            onPressed: () {
+              onUpdate(productsEx![index]);
+            },
+            icon: const Icon(Icons.edit),
+          ),
           IconButton(
-              onPressed: () {
-                onDelete(productsEx![index]);
-              },
-              icon: const Icon(
-                Icons.delete,
-                color: Colors.red,
-              )),
+            onPressed: () {
+              onDelete(productsEx![index]);
+            },
+            icon: const Icon(
+              Icons.delete,
+              color: Colors.red,
+            ),
+          ),
         ],
       )),
     ]);
