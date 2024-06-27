@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
-
 import '../helpers/sql_helper.dart';
 import '../pages/all_sales.dart';
 import '../pages/products.dart';
@@ -62,9 +61,8 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Home Page'),
-      ),
+      appBar: AppBar(),
+      drawer: Icon(Icons.menu),
       body: Column(
         children: [
           Container(
@@ -168,6 +166,17 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          var sqlHelper = GetIt.I.get<SqlHelper>();
+          await sqlHelper.backupDatabase();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Backup Created!'), backgroundColor: Colors.green,),
+          );
+        },
+        icon: Icon(Icons.backup),
+        label: Text('Backup'),
       ),
     );
   }

@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
@@ -128,6 +132,46 @@ class SqlHelper {
     } catch (e) {
       print('Error fetching exchange rate: $e');
       return null;
+    }
+  }
+  Future<void> backupDatabase() async {
+    try {
+      // Get the path to the database file
+      var databasesPath = await getDatabasesPath();
+      String dbPath = join(databasesPath, 'pos.db');
+
+      // Get the path to the backup directory
+      Directory documentsDirectory = await getApplicationDocumentsDirectory();
+      String backupPath = join(documentsDirectory.path, 'backup_database.db');
+
+      // Copy the database file to the backup location
+      File sourceFile = File(dbPath);
+      File backupFile = File(backupPath);
+      await backupFile.writeAsBytes(await sourceFile.readAsBytes());
+
+      print('Database backup created at $backupPath');
+    } catch (e) {
+      print('Error creating database backup: $e');
+    }
+  }
+  Future<void> restoreDatabase() async {
+    try {
+      // Get the path to the database file
+      var databasesPath = await getDatabasesPath();
+      String dbPath = join(databasesPath, 'your_database.db');
+
+      // Get the path to the backup directory
+      Directory documentsDirectory = await getApplicationDocumentsDirectory();
+      String backupPath = join(documentsDirectory.path, 'backup_database.db');
+
+      // Copy the backup file to the database location
+      File backupFile = File(backupPath);
+      File dbFile = File(dbPath);
+      await dbFile.writeAsBytes(await backupFile.readAsBytes());
+
+      print('Database restored from backup at $backupPath');
+    } catch (e) {
+      print('Error restoring database from backup: $e');
     }
   }
 }
